@@ -1,6 +1,5 @@
 {
-    "name": "ShapekeySearch",
-    "rootNamespace": "",
+    "name": "com.vrchat.core.vpm-resolver.Editor",
     "references": [],
     "includePlatforms": [
         "Editor"
