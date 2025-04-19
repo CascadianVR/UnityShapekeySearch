@@ -12,7 +12,7 @@ public static class MeshRendererEditorPatcher
     {
         Harmony harmony = new Harmony("com.cascas.skinnedmeshrenderer.patch");
 
-        // Get internal type: UnityEditor.MeshRendererEditor
+        // Get internal type: UnityEditor.SkinnedMeshRendererEditor
         Type editorType = typeof(Editor).Assembly.GetType("UnityEditor.SkinnedMeshRendererEditor");
         if (editorType == null) return;
         MethodInfo methodToPatch = editorType.GetMethod("OnInspectorGUI", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
