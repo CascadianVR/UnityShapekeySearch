@@ -1,7 +1,7 @@
 {
   "name": "com.cascas.unityshapekeysearch",
   "displayName": "Unity Shapekey Search",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Describe this Package",
   "gitDependencies": {},
   "vpmDependencies": {
