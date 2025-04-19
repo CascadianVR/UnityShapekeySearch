@@ -1,0 +1,14 @@
+{
+  "name": "com.cascas.shapekey-search",
+  "displayName": "Shapekey Search",
+  "version": "0.0.1",
+  "unity": "2022.3",
+  "description": "Provides a search bar at the top of the skinned mesh renderer component that allows you to search for shapekeys and adds some additional features.",
+  "vrchatVersion": "2022.1.1",
+  "author": {
+    "name": "Momo the Monster",
+    "email": "momodmonster@gmail.com",
+    "url": "https://mmmlabs.com"
+  },
+  "dependencies": {}
+}

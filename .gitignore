@@ -22,8 +22,6 @@
 # Visual Studio cache directory
 .vs/
 
-.packages/com.cascas.unityshapekeyviewer/
-
 # Gradle cache directory
 .gradle/
 
