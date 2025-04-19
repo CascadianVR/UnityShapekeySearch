@@ -1,9 +1,8 @@
 {
-  "name": "com.cascas.unityshapekeyviewer",
-  "displayName": "com.cascas.unityshapekeyviewer",
+  "name": "com.cascas.unityshapekeysearch",
+  "displayName": "Unity Shapekey Search",
   "version": "0.0.1",
   "description": "Describe this Package",
-  "dependencies": {},
   "gitDependencies": {},
   "vpmDependencies": {
     "com.vrchat.avatars": "3.8.0"

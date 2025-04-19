@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.cascas.unityshapekeyviewer": {
+    "com.cascas.unityshapekeysearch": {
       "version": "file:com.cascas.unityshapekeyviewer",
       "depth": 0,
       "source": "embedded",
