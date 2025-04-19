@@ -1,7 +1,7 @@
 {
   "dependencies": {
-    "com.cascas.shapekey-search": {
-      "version": "file:com.vrchat.demo-template",
+    "com.cascas.unityshapekeyviewer": {
+      "version": "file:com.cascas.unityshapekeyviewer",
       "depth": 0,
       "source": "embedded",
       "dependencies": {}
