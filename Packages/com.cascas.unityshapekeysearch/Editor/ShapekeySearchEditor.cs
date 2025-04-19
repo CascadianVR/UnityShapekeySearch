@@ -40,6 +40,7 @@ public static class MeshRendererEditorPatcher
             stretchHeight = true,
             fontSize = 13                 // Optional: make text bigger too
         };
+        
         searchQuery = EditorGUILayout.TextField(searchQuery, searchStyle, GUILayout.Height(24));
 
         GUIStyle cancelButtonStyle = new GUIStyle(GUI.skin.FindStyle("ToolbarSearchCancelButton"))
@@ -86,10 +87,12 @@ public static class MeshRendererEditorPatcher
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField(blendshapeNames[index], GUILayout.Width(150));
             float value = skinnedMeshRenderer!.GetBlendShapeWeight(index);
-            bool swap = GUILayout.Button("O");
+            bool swap = GUILayout.Button(EditorGUIUtility.IconContent("d_preAudioLoopOff"));
             float newValue = EditorGUILayout.Slider(value, 0, 100);
+            
+            // If swap button is pressed, swap the value
             newValue = swap ? Mathf.Abs(newValue - 100) : newValue;
-            Debug.Log(newValue);
+            
             if (!Mathf.Approximately(newValue, value))
             {
                 skinnedMeshRenderer.SetBlendShapeWeight(index, newValue);
@@ -98,6 +101,8 @@ public static class MeshRendererEditorPatcher
         }
         
         EditorGUILayout.EndVertical();
+        
+        EditorGUILayout.Space();
     }
     
     private static void CacheBlendshapes()
