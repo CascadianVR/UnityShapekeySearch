@@ -1,8 +1,8 @@
 {
   "name": "com.cascas.unityshapekeysearch",
   "displayName": "Unity Shapekey Search",
-  "version": "0.0.3",
-  "description": "Describe this Package",
+  "version": "0.0.4",
+  "description": "Provides a search bar at the top of the skinned mesh renderer component that allows you to search for shapekeys and adds some additional features.",
   "gitDependencies": {},
   "vpmDependencies": {
     "com.vrchat.avatars": "3.8.0"
