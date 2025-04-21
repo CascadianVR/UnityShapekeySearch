@@ -14,9 +14,7 @@ Easily locate and configure shapekeys on any mesh with built-in filtering and di
   </tr>
 </table>
 
-## 🗂️ Download through VCC
-
-https://cascadianvr.github.io/UnityShapekeySearch/
+## 🗂️ [Download through VCC](https://cascadianvr.github.io/UnityShapekeySearch/) 
 
 ## ▶ Current Features
 
