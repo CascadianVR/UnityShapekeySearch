@@ -1,4 +1,6 @@
-﻿using System;
+﻿#if UNITY_EDITOR
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -14,23 +16,26 @@ public static class MeshRendererEditorPatcher
         Harmony harmony = new Harmony("com.cascas.skinnedmeshrenderer.patch");
 
         // Get internal type: UnityEditor.SkinnedMeshRendererEditor
-        Type editorType = typeof(Editor).Assembly.GetType("UnityEditor.SkinnedMeshRendererEditor");
+        Type editorType = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.SkinnedMeshRendererEditor");
         if (editorType == null) return;
         MethodInfo methodToPatch = editorType.GetMethod("OnInspectorGUI", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         MethodInfo prefix = typeof(MeshRendererEditorPatcher).GetMethod(nameof(OnInspectorGUIPrefix), BindingFlags.Static | BindingFlags.NonPublic);
-        harmony.Patch(methodToPatch, prefix: new HarmonyMethod(prefix));
+        harmony.Patch(methodToPatch, prefix: new HarmonyMethod(prefix){priority = Priority.First});
     }
     
-    private static string searchQuery = "";
     private static bool sortAlphabetically = false;
+    private static bool lastSortAlphabetically = false;
     private static int searchTypePopup = 1;
+    private static string searchQuery = "";
+    private static string lastSearchQuery = "";
+    private static string[] searchQueryWords = Array.Empty<string>();
     private static SkinnedMeshRenderer skinnedMeshRenderer;
+    private static readonly List<int> blendshapeDisplayIndices = new List<int>();
     private static readonly Dictionary<int, string> blendshapeNames = new Dictionary<int, string>();
     private static List<KeyValuePair<int, string>> blendshapeNamesAlphabetical = new List<KeyValuePair<int, string>>();
-    private static readonly List<int> blendshapeDisplayIndices = new List<int>();
     
     // This will run BEFORE Unity's inspector code
-    private static void OnInspectorGUIPrefix(Editor __instance)
+    private static void OnInspectorGUIPrefix(UnityEditor.Editor __instance)
     {
         if (skinnedMeshRenderer == null)
         {
@@ -45,12 +50,16 @@ public static class MeshRendererEditorPatcher
         // Find all blendshapes that match the current search query
         if (string.IsNullOrEmpty(searchQuery))
         {
-            blendshapeDisplayIndices.Clear();
+            if (blendshapeDisplayIndices.Count > 0) blendshapeDisplayIndices.Clear();
             return;
         }
-        
+
         GetShapekeyIndexToDisplay();
         DisplayShapekeys();
+        
+        lastSearchQuery = searchQuery;
+        lastSortAlphabetically = sortAlphabetically;
+        __instance.serializedObject.ApplyModifiedProperties();
     }
     
     private static void CacheBlendshapes()
@@ -111,42 +120,40 @@ public static class MeshRendererEditorPatcher
     
     private static void GetShapekeyIndexToDisplay()
     {
+        // If the search query is the same as the last one, and we don't need to update the list from sorting, don't do anything.
+        if (searchQuery == lastSearchQuery && sortAlphabetically == lastSortAlphabetically) return;
+        
+        // Add each space-separated word to the search query
+        searchQueryWords = searchQuery.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        
+        // Clear the list of indices to display and find all the new indices to display based on the search query and search settings.
         blendshapeDisplayIndices.Clear();
-        //f (displayAll)
-        //
-        //   blendshapeDisplayIndices = blendshapeNames.Keys.ToList();
-        //
-        //lse
         {
             if (sortAlphabetically)
             {
                 foreach (KeyValuePair<int, string> pair in blendshapeNamesAlphabetical)
                 {
-                    if (DoesMatchSearchQuery(pair.Value))
-                    {
-                        blendshapeDisplayIndices.Add(pair.Key);
-                    }
+                    bool doesContain = searchQueryWords.All(word => ContainInSearch(pair.Value, word));
+                    if (doesContain) blendshapeDisplayIndices.Add(pair.Key);
                 }
             }
             else
             {
                 for (int i = 0; i < blendshapeNames.Count; i++)
                 {
-                    if (DoesMatchSearchQuery(blendshapeNames[i]))
-                    {
-                        blendshapeDisplayIndices.Add(i);
-                    }
+                    bool doesContain = searchQueryWords.All(word => ContainInSearch(blendshapeNames[i], word));
+                    if (doesContain) blendshapeDisplayIndices.Add(i);
                 }
             }
         }
     }
 
-    private static bool DoesMatchSearchQuery(string name)
+    private static bool ContainInSearch(string shapekeyName, string searchString)
     {
         return searchTypePopup switch
         {
-            0 => name.StartsWith(searchQuery, StringComparison.OrdinalIgnoreCase),
-            1 => name.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase) >= 0,
+            0 => shapekeyName.StartsWith(searchString, StringComparison.OrdinalIgnoreCase),
+            1 => shapekeyName.IndexOf(searchString, StringComparison.OrdinalIgnoreCase) >= 0,
             _ => false
         };
     }
@@ -168,10 +175,14 @@ public static class MeshRendererEditorPatcher
             
             if (!Mathf.Approximately(newValue, value))
             {
+                Undo.RecordObject(skinnedMeshRenderer, "Change BlendShape Weight");
                 skinnedMeshRenderer.SetBlendShapeWeight(index, newValue);
+                EditorUtility.SetDirty(skinnedMeshRenderer);
             }
             EditorGUILayout.EndHorizontal();
         }
         GUILayout.EndVertical();
     }
 }
+
+#endif
