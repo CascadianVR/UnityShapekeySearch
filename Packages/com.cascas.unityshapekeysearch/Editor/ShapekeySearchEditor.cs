@@ -4,15 +4,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using HarmonyLib;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 [InitializeOnLoad]
 public static class MeshRendererEditorPatcher
 {
+    private static bool isInitialized = false;
     static MeshRendererEditorPatcher()
     {
+        if (isInitialized) return;
         Harmony harmony = new Harmony("com.cascas.skinnedmeshrenderer.patch");
 
         // Get internal type: UnityEditor.SkinnedMeshRendererEditor
@@ -20,46 +24,77 @@ public static class MeshRendererEditorPatcher
         if (editorType == null) return;
         MethodInfo methodToPatch = editorType.GetMethod("OnInspectorGUI", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         MethodInfo prefix = typeof(MeshRendererEditorPatcher).GetMethod(nameof(OnInspectorGUIPrefix), BindingFlags.Static | BindingFlags.NonPublic);
+        MethodInfo methodToPatch2 = editorType.GetMethod("OnEnable", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        MethodInfo prefix2 = typeof(MeshRendererEditorPatcher).GetMethod(nameof(OnEnablePrefix), BindingFlags.Static | BindingFlags.NonPublic);
         harmony.Patch(methodToPatch, prefix: new HarmonyMethod(prefix){priority = Priority.First});
+        harmony.Patch(methodToPatch2, prefix: new HarmonyMethod(prefix2){priority = Priority.First});
+        isInitialized = true;
     }
     
     private static bool sortAlphabetically = false;
-    private static bool lastSortAlphabetically = false;
     private static int searchTypePopup = 1;
     private static string searchQuery = "";
-    private static string lastSearchQuery = "";
     private static string[] searchQueryWords = Array.Empty<string>();
     private static SkinnedMeshRenderer skinnedMeshRenderer;
     private static readonly List<int> blendshapeDisplayIndices = new List<int>();
     private static readonly Dictionary<int, string> blendshapeNames = new Dictionary<int, string>();
     private static List<KeyValuePair<int, string>> blendshapeNamesAlphabetical = new List<KeyValuePair<int, string>>();
+    private static string currentObjectName;
+    private static Vector2 displayScrollView;
+    private static readonly GUIStyle buttonStyle1 = new GUIStyle();
+    private static readonly GUIStyle buttonStyle2 = new GUIStyle();
+    
+    private static void OnEnablePrefix(UnityEditor.Editor __instance)
+    {
+        if (currentObjectName == __instance.target.name) return;
+        Startup(__instance.target);
+    }
     
     // This will run BEFORE Unity's inspector code
     private static void OnInspectorGUIPrefix(UnityEditor.Editor __instance)
     {
-        if (skinnedMeshRenderer == null)
+        if (skinnedMeshRenderer == null || blendshapeNames.Count <= 0 || blendshapeNamesAlphabetical.Count <= 0)
         {
-            skinnedMeshRenderer = __instance.target as SkinnedMeshRenderer;
+            Startup(__instance.target);
         }
-        if (blendshapeNames.Count <= 0 || blendshapeNamesAlphabetical.Count <= 0)
-        {
-            CacheBlendshapes();
-        }
+        
+        if (skinnedMeshRenderer.sharedMesh.blendShapeCount <= 0) return;
+        
+        // Draw the search bar and search settings
         DisplaySearchBar();
         
         // Find all blendshapes that match the current search query
         if (string.IsNullOrEmpty(searchQuery))
         {
             if (blendshapeDisplayIndices.Count > 0) blendshapeDisplayIndices.Clear();
+            GUILayout.Space(10);
             return;
         }
-
         GetShapekeyIndexToDisplay();
+        
+        // Display all blendshapes that match the current search query in a list below the search bar
         DisplayShapekeys();
         
-        lastSearchQuery = searchQuery;
-        lastSortAlphabetically = sortAlphabetically;
+        GUILayout.Space(10);
+        
+        // Apply changes to the serialized object to make sure the changes are saved
         __instance.serializedObject.ApplyModifiedProperties();
+    }
+
+    private static void Startup(Object target)
+    {
+        currentObjectName = target.name;
+        skinnedMeshRenderer = target as SkinnedMeshRenderer;
+        CacheBlendshapes();
+
+        Texture2D hoverTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Packages/com.cascas.unityshapekeysearch/Editor/hover_color.png");
+        
+        buttonStyle1.padding = new RectOffset(0, 0, 3, 3);
+        buttonStyle1.hover.background = hoverTex;
+        
+        buttonStyle2.padding = new RectOffset(0, 0, 3, 3);
+        buttonStyle2.normal.background = AssetDatabase.LoadAssetAtPath<Texture2D>("Packages/com.cascas.unityshapekeysearch/Editor/dark_color.png");
+        buttonStyle2.hover.background = hoverTex;
     }
     
     private static void CacheBlendshapes()
@@ -110,7 +145,9 @@ public static class MeshRendererEditorPatcher
         EditorGUILayout.EndHorizontal();
         
         EditorGUILayout.BeginHorizontal();
-        GUILayout.Label("Search Mode", GUILayout.Width(80));
+        GUIContent popupContent = new GUIContent("Search Mode",  "Starts with mode will only return results that start with the " +
+            "search query.\nContains mode will return results that are contained anywhere withing the search query.");
+        GUILayout.Label(popupContent, GUILayout.Width(85));
         searchTypePopup = EditorGUILayout.Popup(searchTypePopup, new[] { "Starts With", "Contains" },
             GUILayout.Height(24), GUILayout.Width(120));
         GUILayout.FlexibleSpace();
@@ -121,7 +158,7 @@ public static class MeshRendererEditorPatcher
     private static void GetShapekeyIndexToDisplay()
     {
         // If the search query is the same as the last one, and we don't need to update the list from sorting, don't do anything.
-        if (searchQuery == lastSearchQuery && sortAlphabetically == lastSortAlphabetically) return;
+        //if (searchQuery == lastSearchQuery && sortAlphabetically == lastSortAlphabetically) return;
         
         // Add each space-separated word to the search query
         searchQueryWords = searchQuery.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
@@ -160,27 +197,54 @@ public static class MeshRendererEditorPatcher
     
     private static void DisplayShapekeys()
     {
-        GUILayout.BeginVertical("box");
-        foreach (int index in blendshapeDisplayIndices)
+        if (blendshapeDisplayIndices.Count <= 0)
         {
-            // Draw index with range float slider
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField(blendshapeNames[index], GUILayout.Width(150));
+            GUILayout.Space(5);
+            GUILayout.Label("No blendshapes found with the current search query.", EditorStyles.boldLabel);
+            return;
+        }
+        
+        GUILayout.FlexibleSpace();
+        GUIStyle style = new GUIStyle(GUI.skin.FindStyle("window"))
+        {
+            padding = new RectOffset(5,5,5,5)
+        };
+
+        float elementHeight = 26f;
+        float scrollViewHeight = Mathf.Min(blendshapeDisplayIndices.Count * elementHeight, 300f);
+        
+        EditorGUILayout.BeginVertical(style);
+        displayScrollView = GUILayout.BeginScrollView(displayScrollView, "scrollView", GUILayout.Height(scrollViewHeight));
+        
+        foreach (int index in blendshapeDisplayIndices) // Draw index with range float slider
+        {
+            // If odd, display with box. Otherwise, display with default style
+            EditorGUILayout.BeginHorizontal(index % 2 == 0 ? buttonStyle2 : buttonStyle1);
+            //Debug.Log(test.height);
+            // Display the name of the blendshape with the search query highlighted
+            string blendshapeName = blendshapeNames[index];
+            blendshapeName = searchQueryWords.Aggregate(blendshapeName, (current, word) =>
+                Regex.Replace(current, Regex.Escape(word), $"<color=cyan><b>$0</b></color>", RegexOptions.IgnoreCase));            
+            GUIStyle richLabel = new GUIStyle(EditorStyles.label) { richText = true };
+            EditorGUILayout.LabelField(blendshapeName, richLabel, GUILayout.Width(150));
+            
+            EditorGUI.BeginChangeCheck();
             float value = skinnedMeshRenderer!.GetBlendShapeWeight(index);
             bool swap = GUILayout.Button(EditorGUIUtility.IconContent("d_preAudioLoopOff"));
             float newValue = EditorGUILayout.Slider(value, 0, 100);
-            
-            // If swap button is pressed, swap the value
-            newValue = swap ? Mathf.Abs(newValue - 100) : newValue;
-            
-            if (!Mathf.Approximately(newValue, value))
+            if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(skinnedMeshRenderer, "Change BlendShape Weight");
-                skinnedMeshRenderer.SetBlendShapeWeight(index, newValue);
-                EditorUtility.SetDirty(skinnedMeshRenderer);
+                // If swap button is pressed, swap the value
+                newValue = swap ? Mathf.Abs(newValue - 100) : newValue;
+                if (!Mathf.Approximately(newValue, value))
+                {
+                    skinnedMeshRenderer.SetBlendShapeWeight(index, newValue);
+                }
             }
             EditorGUILayout.EndHorizontal();
         }
+        GUILayout.EndScrollView();
         GUILayout.EndVertical();
     }
 }
