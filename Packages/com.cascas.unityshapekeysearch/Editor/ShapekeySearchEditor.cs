@@ -223,8 +223,10 @@ public static class MeshRendererEditorPatcher
             //Debug.Log(test.height);
             // Display the name of the blendshape with the search query highlighted
             string blendshapeName = blendshapeNames[index];
-            blendshapeName = searchQueryWords.Aggregate(blendshapeName, (current, word) =>
-                Regex.Replace(current, Regex.Escape(word), $"<color=cyan><b>$0</b></color>", RegexOptions.IgnoreCase));            
+            string pattern = string.Join("|", searchQueryWords.Select(Regex.Escape));
+            blendshapeName = Regex.Replace(blendshapeName, pattern,
+                match => $"<color=cyan><b>{match.Value}</b></color>",
+                RegexOptions.IgnoreCase);           
             GUIStyle richLabel = new GUIStyle(EditorStyles.label) { richText = true };
             EditorGUILayout.LabelField(blendshapeName, richLabel, GUILayout.Width(150));
             
