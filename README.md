@@ -3,7 +3,7 @@
 <table border="0">
   <tr>
     <td>
-      <img src="https://github.com/user-attachments/assets/cadf56d2-7de8-4e75-8fe2-d319feb1d740" alt="Preview of feature" width="1000"/>
+      <img src="https://github.com/user-attachments/assets/240b2b88-a76b-40bf-93c2-e37dee488d26" alt="Preview of feature" width="1000"/>
     </td>
     <td>
       <p>
