@@ -7,7 +7,7 @@
     </td>
     <td>
       <p>
-        This Unity Editor script enhances the <code>SkinnedMeshRenderer</code> component by adding a searchable shapekey interface directly in the Inspector.
+        A Unity Editor script that adds the abiltiy to search for shapekeys the <code>SkinnedMeshRenderer</code> component. You can search for a shapekey using the search bar and configure different settings related to it.
 Easily locate and configure shapekeys on any mesh with built-in filtering and display controls designed for faster iteration.
       </p>
     </td>
