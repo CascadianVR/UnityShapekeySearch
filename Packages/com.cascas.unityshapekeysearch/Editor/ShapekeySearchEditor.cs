@@ -81,6 +81,8 @@ namespace Cascadian.ShapekeySearch
             if (_skinnedMeshRenderer == null || BlendshapeNames.Count <= 0 || _blendshapeNamesAlphabetical.Count <= 0)
             {
                 Startup(__instance.target);
+                if (_skinnedMeshRenderer == null || BlendshapeNames.Count <= 0 || _blendshapeNamesAlphabetical.Count <= 0)
+                    return;
             }
 
             if (_skinnedMeshRenderer.sharedMesh.blendShapeCount <= 0) return;
